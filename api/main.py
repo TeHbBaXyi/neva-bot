@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from booking import create_booking, list_groups
-from db import init_db
+from db import Session, init_db
 from models import Group
 from notify import notify_new_booking
 
@@ -58,8 +58,14 @@ async def api_booking(payload: BookingIn):
     booking = await create_booking(payload.group_id, payload.name, payload.phone)
     if booking is None:
         raise HTTPException(status_code=409, detail="Мест нет")
-    # TODO: загрузить группу и отправить уведомление преподавателю
-    await notify_new_booking(booking, group_name=str(payload.group_id))
+    async with Session() as s:
+        group = await s.scalar(select(Group).where(Group.id == payload.group_id))
+    await notify_new_booking(
+        booking,
+        group_name=group.name if group else None,
+        day_of_week=group.day_of_week if group else None,
+        starts_at=group.starts_at.strftime("%H:%M") if group else None,
+    )
     return {"ok": True, "booking_id": booking.id}
 
 

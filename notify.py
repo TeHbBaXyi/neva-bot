@@ -13,14 +13,24 @@ def get_bot() -> Bot:
     return _bot
 
 
-async def notify_new_booking(booking: Booking, group_name: str) -> None:
+async def notify_new_booking(
+    booking: Booking,
+    group_name: str | None = None,
+    day_of_week: str | None = None,
+    starts_at: str | None = None,
+) -> None:
     """Шлёт преподавателю уведомление о новой записи."""
     bot = get_bot()
-    text = (
-        "🎟 Новая запись!\n"
-        f"Группа: {group_name}\n"
-        f"Имя: {booking.name}\n"
-        f"Телефон: {booking.phone}"
-    )
+    lines = [
+        "🎟 Новая запись!",
+        f"Имя: {booking.name}",
+        f"Телефон: {booking.phone}",
+    ]
+    if group_name:
+        group_info = f"Группа: {group_name}"
+        schedule = " ".join(part for part in (day_of_week, starts_at) if part)
+        if schedule:
+            group_info += f", {schedule}"
+        lines.append(group_info)
     for admin_id in settings.admin_ids:
-        await bot.send_message(admin_id, text)
+        await bot.send_message(admin_id, "\n".join(lines))
