@@ -1,5 +1,6 @@
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 
 from db import Session
 from models import Booking, BookingStatus, Group
@@ -7,7 +8,8 @@ from models import Booking, BookingStatus, Group
 
 async def list_groups() -> list[Group]:
     async with Session() as s:
-        return list((await s.execute(select(Group))).scalars().all())
+        query = select(Group).options(selectinload(Group.bookings))
+        return list((await s.execute(query)).scalars().all())
 
 
 async def create_booking(group_id: int, name: str, phone: str) -> Booking | None:
