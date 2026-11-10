@@ -267,11 +267,11 @@
     backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;
     padding:1.5rem;opacity:0;pointer-events:none;transition:opacity .3s}
   .modal-overlay.open{opacity:1;pointer-events:auto}
-  .modal{position:relative;width:100%;max-width:480px;
+  .modal{position:relative;width:100%;max-width:480px;max-height:calc(100dvh - 3rem);
     background:linear-gradient(180deg,var(--night-3),var(--night-2));
     border:1px solid rgba(224,170,78,.25);border-radius:12px;padding:2.6rem;
     box-shadow:0 0 80px rgba(224,170,78,.08),0 40px 100px rgba(0,0,0,.7);
-    transform:translateY(24px);transition:transform .3s;overflow:hidden}
+    transform:translateY(24px);transition:transform .3s;overflow-x:hidden;overflow-y:auto}
   .modal::before{content:'';position:absolute;top:-30%;left:-20%;width:80%;height:60%;
     background:radial-gradient(ellipse at center,rgba(224,170,78,.1),transparent 65%);pointer-events:none}
   .modal-overlay.open .modal{transform:translateY(0)}
@@ -297,11 +297,31 @@
     box-shadow:0 0 35px rgba(201,64,47,.3);transition:transform .2s}
   .modal .form-cta:hover{transform:translateY(-2px)}
   .modal .note{font-size:.8rem;color:var(--fog)}
+  .modal [hidden]{display:none!important}
+  .booking-success{position:relative;text-align:center}
+  .booking-success h3{margin:.4rem 0 .8rem}
+  .zoom-card{margin:1.4rem 0;padding:1.2rem;border:1px solid rgba(224,170,78,.35);
+    border-radius:8px;background:rgba(8,15,19,.65);text-align:left}
+  .zoom-card .zoom-label{display:block;margin-bottom:.55rem;color:var(--amber);
+    font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}
+  .zoom-card a{display:block;color:var(--cream);font-size:.9rem;line-height:1.5;
+    overflow-wrap:anywhere;text-decoration-color:rgba(224,170,78,.55)}
+  .copy-button{width:100%;min-height:44px;margin-top:1rem;padding:.75rem 1rem;
+    border:1px solid var(--amber);border-radius:999px;background:transparent;
+    color:var(--amber);font:inherit;font-weight:600;cursor:pointer;transition:background .2s,color .2s}
+  .copy-button:hover{background:var(--amber);color:var(--night)}
+  .copy-button:focus-visible,.modal .form-cta:focus-visible,.modal .close:focus-visible{
+    outline:2px solid var(--cream);outline-offset:3px}
+  .copy-status{min-height:1.2em;margin:.55rem 0 0;text-align:center;color:var(--cream);font-size:.8rem}
+  .booking-success .form-cta{display:block;text-align:center;text-decoration:none}
+  .booking-success .email-note{margin:1rem 0;color:var(--cream);font-size:.86rem;line-height:1.5}
 
   @media(max-width:960px){
-    .topic .grid,.teacher .grid{grid-template-columns:1fr;gap:2.5rem}
+    .topic .grid,.teacher .grid{grid-template-columns:minmax(0,1fr);gap:2.5rem}
     .cards{grid-template-columns:1fr}
-    .facts{grid-template-columns:repeat(3,1fr);gap:1.2rem}
+    .facts{grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+    .facts .fact b{font-size:1.8rem}
+    .teacher-photo{transform:none}
     nav a:not(.nav-cta){display:none}
     .topic-item{grid-template-columns:1fr;gap:.4rem}
     .modal{padding:2rem 1.5rem}
@@ -524,25 +544,39 @@
 <div class="modal-overlay" id="booking-modal">
   <div class="modal" role="dialog" aria-modal="true" aria-label="Запись в клуб">
     <button class="close" id="modal-close" aria-label="Закрыть">×</button>
-    <span class="kicker" style="text-align:center">Запись в клуб</span>
-    <h3 style="text-align:center">Займите место <em>за минуту</em></h3>
-    <p class="modal-group" id="modal-group-name"></p>
+    <div id="booking-intro">
+      <span class="kicker" style="text-align:center">Запись в клуб</span>
+      <h3 style="text-align:center">Займите место <em>за минуту</em></h3>
+      <p class="modal-group" id="modal-group-name"></p>
+    </div>
     <form id="booking-form">
       <div>
         <label for="name">Имя</label>
-        <input id="name" type="text" placeholder="Как к вам обращаться" required>
+        <input id="name" name="name" type="text" placeholder="Как к вам обращаться" autocomplete="name" required>
       </div>
       <div>
         <label for="phone">Телефон</label>
-        <input id="phone" type="tel" placeholder="+7 (___) ___-__-__" required>
+        <input id="phone" name="phone" type="tel" placeholder="+7 (___) ___-__-__" autocomplete="tel" required>
+      </div>
+      <div>
+        <label for="email">Почта</label>
+        <input id="email" name="email" type="email" placeholder="name@example.com" autocomplete="email" required>
       </div>
       <button class="form-cta" type="submit">Подтвердить запись</button>
-      <p class="note">Преподавателю сразу придёт уведомление в Telegram. Место закрепляется после подтверждения оплаты.</p>
+      <p class="note">Преподавателю сразу придёт уведомление в Telegram.</p>
       <p class="note" id="form-status" role="alert"></p>
     </form>
-    <div id="booking-result" hidden>
+    <div id="booking-result" class="booking-success" hidden>
+      <h3>Вы успешно <em>записаны!</em></h3>
       <p class="note" id="booking-status" role="status"></p>
-      <a id="manage-link" class="form-cta" style="display:block;text-align:center;text-decoration:none" target="_blank" rel="noopener">Управлять записью в Telegram</a>
+      <div class="zoom-card" id="zoom-card">
+        <span class="zoom-label">Ваша ссылка на Zoom</span>
+        <a id="zoom-link" target="_blank" rel="noopener"></a>
+        <button class="copy-button" id="copy-zoom" type="button">Скопировать ссылку</button>
+        <p class="copy-status" id="copy-status" role="status" aria-live="polite"></p>
+      </div>
+      <p class="email-note" id="email-status"></p>
+      <a id="manage-link" class="form-cta" target="_blank" rel="noopener">Управлять записью в Telegram</a>
     </div>
   </div>
 </div>
@@ -596,12 +630,18 @@
   const apiBase = (window.API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
   const cards = document.getElementById('groups-list');
   const overlay = document.getElementById('booking-modal');
+  const intro = document.getElementById('booking-intro');
   const groupNameEl = document.getElementById('modal-group-name');
   const form = document.getElementById('booking-form');
   const formStatus = document.getElementById('form-status');
   const result = document.getElementById('booking-result');
   const resultStatus = document.getElementById('booking-status');
   const manageLink = document.getElementById('manage-link');
+  const zoomCard = document.getElementById('zoom-card');
+  const zoomLink = document.getElementById('zoom-link');
+  const copyButton = document.getElementById('copy-zoom');
+  const copyStatus = document.getElementById('copy-status');
+  const emailStatus = document.getElementById('email-status');
   const submitButton = form.querySelector('.form-cta');
   const occupiedSvg = '<svg viewBox="0 0 34 34"><circle class="sil" cx="17" cy="8" r="6"/><path class="sil" d="M4 34 Q4 18 17 18 Q30 18 30 34 Z"/></svg>';
   const emptySvg = '<svg viewBox="0 0 34 34"><path class="sil" d="M10 3 h14 v12 h-14 Z M7 20 h20 M10 20 v11 M24 20 v11" fill="none" stroke-width="2" stroke-linejoin="round"/></svg>';
@@ -689,9 +729,13 @@
     chosenGroup = group;
     groupNameEl.textContent = `${group.name} · ${formatDate(group.meeting_date)} ${group.starts_at} · ${group.price} ₽`;
     form.reset();
+    intro.hidden = false;
     form.hidden = false;
     formStatus.textContent = '';
     result.hidden = true;
+    copyStatus.textContent = '';
+    copyButton.textContent = 'Скопировать ссылку';
+    emailStatus.textContent = '';
     submitButton.disabled = false;
     submitButton.textContent = 'Подтвердить запись';
     overlay.classList.add('open');
@@ -707,6 +751,37 @@
   overlay.addEventListener('click', event=>{ if(event.target === overlay) closeModal(); });
   document.addEventListener('keydown', event=>{ if(event.key === 'Escape') closeModal(); });
 
+  copyButton.addEventListener('click', async ()=>{
+    const url = zoomLink.href;
+    if(!url) return;
+    let copied = false;
+    try{
+      if(navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      }else{
+        const helper = document.createElement('textarea');
+        helper.value = url;
+        helper.setAttribute('readonly', '');
+        helper.style.position = 'fixed';
+        helper.style.opacity = '0';
+        document.body.append(helper);
+        helper.select();
+        copied = document.execCommand('copy');
+        helper.remove();
+      }
+    }catch(error){
+      copied = false;
+    }
+    copyStatus.textContent = copied
+      ? 'Ссылка скопирована.'
+      : 'Не удалось скопировать автоматически. Откройте ссылку и скопируйте её из адресной строки.';
+    if(copied){
+      copyButton.textContent = 'Скопировано';
+      window.setTimeout(()=>{ copyButton.textContent = 'Скопировать ссылку'; }, 2000);
+    }
+  });
+
   form.addEventListener('submit', async event=>{
     event.preventDefault();
     if(!chosenGroup || submitButton.disabled) return;
@@ -720,7 +795,8 @@
         body: JSON.stringify({
           group_id: chosenGroup.id,
           name: document.getElementById('name').value,
-          phone: document.getElementById('phone').value
+          phone: document.getElementById('phone').value,
+          email: document.getElementById('email').value
         })
       });
       const data = await response.json().catch(()=>({}));
@@ -730,11 +806,31 @@
           : data.detail;
         throw new Error(detail || 'Не удалось создать запись. Попробуйте ещё раз.');
       }
+      intro.hidden = true;
       form.hidden = true;
       result.hidden = false;
       resultStatus.textContent = data.duplicate
-        ? 'Такая запись уже существует. Для управления ею откройте бота и нажмите «Мои записи».'
-        : 'Место записано. Сохраните ссылку ниже, чтобы посмотреть или отменить запись.';
+        ? 'Такая запись уже существует. Ниже — ссылка на встречу и управление записью.'
+        : 'Место сохранено. Ссылка на встречу доступна ниже.';
+      zoomCard.hidden = !data.zoom_url;
+      if(data.zoom_url){
+        zoomLink.href = data.zoom_url;
+        zoomLink.textContent = data.zoom_url;
+      }
+      const email = document.getElementById('email').value.trim();
+      if(!data.zoom_url){
+        emailStatus.textContent = 'Запись сохранена. Преподаватель отправит Zoom-ссылку позже.';
+      }else if(data.duplicate){
+        emailStatus.textContent = 'Повторное письмо не отправлялось — ссылка на встречу доступна ниже.';
+      }else if(data.email_status === 'sent'){
+        emailStatus.textContent = `Ссылка на Zoom отправлена на почту ${email}.`;
+      }else if(data.email_status === 'failed'){
+        emailStatus.textContent = 'Запись сохранена, но письмо не отправилось. Ссылка доступна ниже — скопируйте её или напишите преподавателю.';
+      }else if(data.email_status === 'not_configured'){
+        emailStatus.textContent = 'Запись сохранена, но автоматическая отправка письма не настроена. Ссылка доступна ниже.';
+      }else{
+        emailStatus.textContent = 'Запись сохранена. Ссылка на встречу доступна ниже.';
+      }
       manageLink.hidden = !data.manage_url;
       if(data.manage_url) manageLink.href = data.manage_url;
       await loadGroups();

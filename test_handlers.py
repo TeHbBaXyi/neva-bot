@@ -36,6 +36,7 @@ def form_data(**overrides):
         "duration_min": 60,
         "price": 1000,
         "topic": "Free conversation",
+        "zoom_url": "https://zoom.us/j/123456789",
         "description": "Description",
     }
     data.update(overrides)
@@ -135,6 +136,7 @@ class GroupHandlersTest(unittest.IsolatedAsyncioTestCase):
                 id=index,
                 name=f"Ученик {index}",
                 phone=f"+7999000000{index}",
+                email=f"student{index}@example.com",
                 status="new",
             )
             for index in range(1, 9)
@@ -153,6 +155,12 @@ class GroupHandlersTest(unittest.IsolatedAsyncioTestCase):
         keyboard = callback.message.answer.call_args.kwargs["reply_markup"]
         self.assertEqual(len(keyboard.inline_keyboard), 1)
         self.assertEqual(keyboard.inline_keyboard[0][0].callback_data, "group:5")
+
+    async def test_zoom_url_rejects_invalid_input(self):
+        for value in ("", "zoom.us/j/123", "http://zoom.us/j/123", None, "9" * 2100):
+            error = handlers.group_values_error(form_data(zoom_url=value))
+            self.assertIsNotNone(error)
+        self.assertIsNone(handlers.group_values_error(form_data()))
 
     async def test_time_rejects_invalid_input(self):
         for value in ("25:00", "19:60", "abc", "", None, "9" * 5000):

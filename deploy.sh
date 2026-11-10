@@ -70,13 +70,25 @@ read_env_value() {
 
 BOT_TOKEN="$(read_env_value BOT_TOKEN "$UPLOADED_ENV")"
 ADMIN_IDS="$(read_env_value ADMIN_IDS "$UPLOADED_ENV")"
+SMTP_HOST="$(read_env_value SMTP_HOST "$UPLOADED_ENV")"
+SMTP_PORT="$(read_env_value SMTP_PORT "$UPLOADED_ENV")"
+SMTP_USERNAME="$(read_env_value SMTP_USERNAME "$UPLOADED_ENV")"
+SMTP_PASSWORD="$(read_env_value SMTP_PASSWORD "$UPLOADED_ENV")"
+SMTP_FROM="$(read_env_value SMTP_FROM "$UPLOADED_ENV")"
+SMTP_FROM_NAME="$(read_env_value SMTP_FROM_NAME "$UPLOADED_ENV")"
+SMTP_TIMEOUT="$(read_env_value SMTP_TIMEOUT "$UPLOADED_ENV")"
 DATABASE_URL=""
 POSTGRES_PASSWORD=""
 
-# При повторном деплое сохраняем параметры уже работающей серверной базы.
+# При повторном деплое сохраняем параметры уже работающей серверной базы и SMTP.
 if [[ -f .env ]]; then
   DATABASE_URL="$(read_env_value DATABASE_URL .env)"
   POSTGRES_PASSWORD="$(read_env_value POSTGRES_PASSWORD .env)"
+  for smtp_key in SMTP_HOST SMTP_PORT SMTP_USERNAME SMTP_PASSWORD SMTP_FROM SMTP_FROM_NAME SMTP_TIMEOUT; do
+    if [[ -z "${!smtp_key}" ]]; then
+      printf -v "$smtp_key" '%s' "$(read_env_value "$smtp_key" .env)"
+    fi
+  done
 fi
 
 # На первом деплое создаём независимый случайный пароль контейнерной PostgreSQL.
@@ -85,12 +97,23 @@ if [[ -z "$DATABASE_URL" || -z "$POSTGRES_PASSWORD" ]]; then
   DATABASE_URL="postgresql+asyncpg://neva:${POSTGRES_PASSWORD}@db:5432/neva_bot"
 fi
 
+SMTP_PORT="${SMTP_PORT:-465}"
+SMTP_FROM_NAME="${SMTP_FROM_NAME:-Нева—Темза}"
+SMTP_TIMEOUT="${SMTP_TIMEOUT:-15}"
+
 umask 077
 {
   printf 'BOT_TOKEN=%s\n' "$BOT_TOKEN"
   printf 'ADMIN_IDS=%s\n' "$ADMIN_IDS"
   printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
   printf 'POSTGRES_PASSWORD=%s\n' "$POSTGRES_PASSWORD"
+  printf 'SMTP_HOST=%s\n' "$SMTP_HOST"
+  printf 'SMTP_PORT=%s\n' "$SMTP_PORT"
+  printf 'SMTP_USERNAME=%s\n' "$SMTP_USERNAME"
+  printf 'SMTP_PASSWORD=%s\n' "$SMTP_PASSWORD"
+  printf 'SMTP_FROM=%s\n' "$SMTP_FROM"
+  printf 'SMTP_FROM_NAME=%s\n' "$SMTP_FROM_NAME"
+  printf 'SMTP_TIMEOUT=%s\n' "$SMTP_TIMEOUT"
 } > .env
 
 # Сайт обращается к API через Nginx на том же IP, без отдельного публичного порта БД.

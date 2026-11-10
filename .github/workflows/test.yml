@@ -29,7 +29,7 @@ jobs:
           cache: pip
       - name: Install dependencies
         run: python -m pip install -r requirements-test.txt
-      - name: Run handler unit tests
-        run: python -m unittest -v test_handlers.py
+      - name: Run handler and mailer unit tests
+        run: python -m unittest -v test_handlers.py test_mailer.py
       - name: Run Postgres smoke test
         run: python test_smoke.py

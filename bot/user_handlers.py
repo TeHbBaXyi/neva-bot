@@ -17,7 +17,6 @@ from booking import cancel_booking
 from config import settings
 from db import Session
 from models import Booking, BookingStatus, Group
-from validation import normalize_phone
 
 
 router = Router()
@@ -27,7 +26,6 @@ def user_menu_kb() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="Мои записи")],
-            [KeyboardButton(text="Найти по номеру Telegram", request_contact=True)],
         ],
         resize_keyboard=True,
     )
@@ -39,7 +37,9 @@ def booking_text(booking: Booking) -> str:
         f"{group.name} · {group.meeting_date:%d.%m.%Y} {group.starts_at:%H:%M}\n"
         f"Уровень: {group.level}\n"
         f"Имя: {booking.name}\n"
-        f"Телефон: {booking.phone}"
+        f"Телефон: {booking.phone}\n"
+        f"Почта: {booking.email}\n"
+        f"Zoom: {group.zoom_url}"
     )
 
 
@@ -137,41 +137,6 @@ async def user_start(message: Message) -> None:
 @router.message(Command("my"))
 @router.message(F.text == "Мои записи")
 async def user_my(message: Message) -> None:
-    await show_user_bookings(message, message.from_user.id)
-
-
-@router.message(F.contact)
-async def user_contact(message: Message) -> None:
-    if message.contact.user_id != message.from_user.id:
-        await message.answer("Отправьте собственный контакт кнопкой ниже.")
-        return
-    try:
-        phone = normalize_phone(message.contact.phone_number)
-    except ValueError:
-        await message.answer("Не удалось распознать номер телефона.")
-        return
-
-    async with Session.begin() as session:
-        result = await session.execute(
-            select(Booking)
-            .options(joinedload(Booking.group))
-            .join(Booking.group)
-            .where(
-                Booking.phone == phone,
-                Booking.status != BookingStatus.CANCELLED,
-                Group.meeting_date >= date.today(),
-            )
-        )
-        bookings = list(result.scalars().all())
-        for booking in bookings:
-            booking.telegram_user_id = message.from_user.id
-
-    if not bookings:
-        await message.answer(
-            "По номеру Telegram активных записей нет. "
-            "Если вы указывали другой номер, откройте ссылку из подтверждения записи."
-        )
-        return
     await show_user_bookings(message, message.from_user.id)
 
 

@@ -23,6 +23,7 @@ async def create_booking(
     group_id: int,
     name: str,
     phone: str,
+    email: str,
     manage_token: str,
 ) -> tuple[Booking | None, bool]:
     """Создаёт запись без превышения capacity и дублей одного телефона."""
@@ -55,6 +56,7 @@ async def create_booking(
             group_id=group_id,
             name=name,
             phone=phone,
+            email=email,
             manage_token=manage_token,
         )
         s.add(booking)

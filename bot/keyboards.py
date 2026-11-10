@@ -67,6 +67,7 @@ def group_form_kb() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="Цена", callback_data="group_form:edit:price"),
         ],
         [InlineKeyboardButton(text="Тема встречи", callback_data="group_form:edit:topic")],
+        [InlineKeyboardButton(text="Ссылка Zoom", callback_data="group_form:edit:zoom_url")],
         [InlineKeyboardButton(text="Описание встречи", callback_data="group_form:edit:description")],
         [InlineKeyboardButton(text="✅ Сохранить группу", callback_data="group_form:save")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="group_form:back")],

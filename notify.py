@@ -34,6 +34,7 @@ async def notify_new_booking(
         "🎟 Новая запись!",
         f"Имя: {booking.name}",
         f"Телефон: {booking.phone}",
+        f"Почта: {booking.email}",
     ]
     if group_name:
         group_info = f"Группа: {group_name}"

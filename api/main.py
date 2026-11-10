@@ -9,9 +9,10 @@ from sqlalchemy import select
 
 from booking import create_booking, list_groups
 from db import Session
+from mailer import ZoomEmailStatus, send_zoom_link
 from models import Group
 from notify import booking_manage_url, notify_new_booking
-from validation import normalize_name, normalize_phone
+from validation import normalize_email, normalize_name, normalize_phone
 
 
 app = FastAPI()
@@ -42,6 +43,7 @@ class BookingIn(BaseModel):
     group_id: int = Field(gt=0)
     name: str
     phone: str
+    email: str
 
     @field_validator("name")
     @classmethod
@@ -52,6 +54,11 @@ class BookingIn(BaseModel):
     @classmethod
     def validate_phone(cls, value: str) -> str:
         return normalize_phone(value)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        return normalize_email(value)
 
 
 @app.get("/api/groups", response_model=list[GroupOut])
@@ -72,21 +79,39 @@ async def api_groups():
 @app.post("/api/booking", status_code=201)
 async def api_booking(payload: BookingIn, response: Response):
     manage_token = secrets.token_urlsafe(32)
-    manage_url = await booking_manage_url(manage_token)
     booking, created = await create_booking(
         payload.group_id,
         payload.name,
         payload.phone,
+        payload.email,
         manage_token,
     )
     if booking is None:
         raise HTTPException(status_code=409, detail="Мест нет")
-    if not created:
-        response.status_code = 200
-        return {"ok": True, "booking_id": booking.id, "duplicate": True}
 
     async with Session() as s:
         group = await s.scalar(select(Group).where(Group.id == payload.group_id))
+    zoom_url = group.zoom_url if group else ""
+
+    if not created:
+        response.status_code = 200
+        manage_url = (
+            await booking_manage_url(booking.manage_token)
+            if booking.manage_token else None
+        )
+        return {
+            "ok": True,
+            "booking_id": booking.id,
+            "duplicate": True,
+            "manage_url": manage_url,
+            "zoom_url": zoom_url,
+            "email_status": ZoomEmailStatus.NOT_SENT.value,
+        }
+
+    manage_url = await booking_manage_url(manage_token)
+    email_status = ZoomEmailStatus.NO_ZOOM_URL
+    if zoom_url:
+        email_status = await send_zoom_link(booking, group, manage_url)
     await notify_new_booking(
         booking,
         group_name=group.name if group else None,
@@ -98,6 +123,8 @@ async def api_booking(payload: BookingIn, response: Response):
         "booking_id": booking.id,
         "duplicate": False,
         "manage_url": manage_url,
+        "zoom_url": zoom_url,
+        "email_status": email_status.value,
     }
 
 

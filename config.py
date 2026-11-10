@@ -10,6 +10,13 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     SITE_HOST: str = "127.0.0.1"
     SITE_PORT: int = 8000
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 465
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+    SMTP_FROM_NAME: str = "Нева—Темза"
+    SMTP_TIMEOUT: int = 15
 
     @property
     def admin_ids(self) -> set[int]:

@@ -24,6 +24,7 @@ from bot.keyboards import (
 from config import settings
 from db import Session
 from models import Booking, BookingStatus, Group
+from validation import normalize_zoom_url
 
 router = Router()
 router.message.filter(F.from_user.id.in_(settings.admin_ids))
@@ -40,6 +41,7 @@ class GroupForm(StatesGroup):
     price = State()
     level = State()
     topic = State()
+    zoom_url = State()
     description = State()
 
 
@@ -52,6 +54,7 @@ FIELD_LABELS = {
     "duration_min": "длительность",
     "price": "цена",
     "topic": "тема встречи",
+    "zoom_url": "ссылка Zoom",
     "description": "описание встречи",
 }
 
@@ -85,6 +88,10 @@ def group_values_error(values: dict) -> str | None:
         return "Цена должна быть от 0 до 100000 рублей"
     if not isinstance(values["topic"], str) or not 1 <= len(values["topic"].strip()) <= 255:
         return "Тема должна содержать от 1 до 255 символов"
+    try:
+        normalize_zoom_url(values["zoom_url"])
+    except (ValueError, AttributeError):
+        return "Укажите полную Zoom-ссылку, начинающуюся с https://"
     if not isinstance(values["description"], str) or not 1 <= len(values["description"].strip()) <= 1000:
         return "Описание должно содержать от 1 до 1000 символов"
     return None
@@ -106,6 +113,7 @@ def group_card_text(data: dict) -> str:
         f"Длительность: {f'{duration_min} мин' if duration_min is not None else '—'}\n"
         f"Цена: {f'{price} ₽' if price is not None else '—'}\n"
         f"Тема встречи: {data.get('topic') or '—'}\n"
+        f"Zoom: {data.get('zoom_url') or '—'}\n"
         f"Описание встречи: {data.get('description') or '—'}"
     )
 
@@ -178,6 +186,10 @@ async def group_edit_field(cb: CallbackQuery, state: FSMContext):
         form_state, text, keyboard = GroupForm.price, "Цена в рублях:", None
     elif field == "topic":
         form_state, text, keyboard = GroupForm.topic, "Тема встречи:", None
+    elif field == "zoom_url":
+        form_state = GroupForm.zoom_url
+        text = "Ссылка Zoom для этой встречи (начинается с https://):"
+        keyboard = None
     elif field == "description":
         form_state, text, keyboard = GroupForm.description, "Описание встречи:", None
     else:
@@ -280,6 +292,17 @@ async def group_topic(m: Message, state: FSMContext):
         await m.answer("Тема должна содержать от 1 до 255 символов. Попробуйте ещё раз:")
         return
     await state.update_data(topic=text)
+    await update_group_card(m, state, delete_input=True)
+
+
+@router.message(GroupForm.zoom_url)
+async def group_zoom_url(m: Message, state: FSMContext):
+    try:
+        zoom_url = normalize_zoom_url(m.text or "")
+    except ValueError as error:
+        await m.answer(f"{error}. Попробуйте ещё раз:")
+        return
+    await state.update_data(zoom_url=zoom_url)
     await update_group_card(m, state, delete_input=True)
 
 
@@ -395,7 +418,7 @@ async def booking_list_content(group_id: int):
     ]
     if bookings:
         lines.extend(
-            f"{index}. {booking.name} — {booking.phone}"
+            f"{index}. {booking.name} — {booking.phone} — {booking.email}"
             for index, booking in enumerate(bookings, start=1)
         )
     else:
@@ -426,6 +449,6 @@ async def group_view(cb: CallbackQuery):
     await cb.message.answer(
         f"{g.name} · {g.meeting_date:%d.%m.%Y} {g.starts_at:%H:%M} · {g.duration_min} мин\n"
         f"Уровень: {g.level}\nЦена: {g.price} ₽\n"
-        f"Тема: {g.topic}\nОписание: {g.description}",
+        f"Тема: {g.topic}\nZoom: {g.zoom_url}\nОписание: {g.description}",
         reply_markup=group_actions_kb(g.id),
     )

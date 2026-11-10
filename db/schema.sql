@@ -10,6 +10,7 @@ CREATE TABLE groups (
     level         VARCHAR(64)  NOT NULL,
     topic         VARCHAR(255) NOT NULL,
     description   VARCHAR(1000) NOT NULL,
+    zoom_url      VARCHAR(2048) NOT NULL,
     capacity      INTEGER      NOT NULL DEFAULT 8
 );
 
@@ -18,6 +19,7 @@ CREATE TABLE bookings (
     group_id   INTEGER     NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
     name       VARCHAR(128) NOT NULL,
     phone      VARCHAR(32)  NOT NULL,
+    email      VARCHAR(254) NOT NULL,
     status     VARCHAR(16)  NOT NULL DEFAULT 'new',
     created_at TIMESTAMP    NOT NULL DEFAULT now(),
     manage_token VARCHAR(64) UNIQUE,

@@ -20,6 +20,7 @@ class Group(Base):
     level: Mapped[str] = mapped_column(String(64))
     topic: Mapped[str] = mapped_column(String(255))
     description: Mapped[str] = mapped_column(String(1000))
+    zoom_url: Mapped[str] = mapped_column(String(2048))
     capacity: Mapped[int] = mapped_column(Integer, default=8)
 
     bookings: Mapped[list["Booking"]] = relationship(back_populates="group")
@@ -38,6 +39,7 @@ class Booking(Base):
     group_id: Mapped[int] = mapped_column(ForeignKey("groups.id"))
     name: Mapped[str] = mapped_column(String(128))
     phone: Mapped[str] = mapped_column(String(32))
+    email: Mapped[str] = mapped_column(String(254))
     status: Mapped[BookingStatus] = mapped_column(String(16), default=BookingStatus.NEW)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     manage_token: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
