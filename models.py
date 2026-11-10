@@ -1,7 +1,7 @@
-from datetime import datetime, time
+from datetime import date, datetime, time
 from enum import StrEnum
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Time
+from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db import Base
@@ -13,6 +13,7 @@ class Group(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(64))        # Adults / Teens / Kids
     day_of_week: Mapped[str] = mapped_column(String(16))   # воскресенье ...
+    meeting_date: Mapped[date] = mapped_column(Date)
     starts_at: Mapped[time] = mapped_column(Time)
     duration_min: Mapped[int] = mapped_column(Integer)
     price: Mapped[int] = mapped_column(Integer)            # рубли
@@ -39,5 +40,7 @@ class Booking(Base):
     phone: Mapped[str] = mapped_column(String(32))
     status: Mapped[BookingStatus] = mapped_column(String(16), default=BookingStatus.NEW)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    manage_token: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    telegram_user_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
 
     group: Mapped[Group] = relationship(back_populates="bookings")

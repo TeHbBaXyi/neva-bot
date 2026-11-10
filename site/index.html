@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Нева-Темза — онлайн разговорный клуб английского</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ===== «Ночной Лондон в тумане» ===== */
+  :root{
+    --night:#080f13;
+    --night-2:#0c171d;
+    --night-3:#11212a;
+    --fog:#7d949b;
+    --cream:#ece4d3;
+    --amber:#e0aa4e;
+    --red:#c9402f;
+    --line:rgba(236,228,211,.12);
+    --paper:#e8ddc4; /* пожелтевшая бумага афиши */
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--night);color:var(--cream);line-height:1.6;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--amber);color:var(--night)}
+
+  /* Общая атмосферная подсветка страницы */
+  .ambience{position:fixed;inset:0;pointer-events:none;z-index:1}
+  .ambience::before{content:'';position:absolute;top:-20vh;left:-10vw;width:60vw;height:70vh;
+    background:radial-gradient(ellipse at center,rgba(224,170,78,.05),transparent 65%)}
+  .ambience::after{content:'';position:absolute;bottom:-20vh;right:-10vw;width:70vw;height:80vh;
+    background:radial-gradient(ellipse at center,rgba(125,148,155,.05),transparent 65%)}
+
+  /* ===== Шапка ===== */
+  header{position:absolute;top:0;left:0;right:0;z-index:20;
+    display:flex;justify-content:space-between;align-items:center;padding:1.6rem 4vw}
+  .logo{display:flex;align-items:center;gap:.9rem}
+  .logo .mark{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:500;color:var(--cream);
+    text-shadow:0 2px 20px rgba(0,0,0,.9)}
+  .logo .divider{width:1px;height:26px;background:rgba(236,228,211,.35)}
+  .logo .sub{font-size:.72rem;letter-spacing:.34em;text-transform:uppercase;color:var(--amber);
+    font-weight:600;text-shadow:0 1px 12px rgba(0,0,0,.9)}
+  nav{display:flex;gap:2rem;align-items:center}
+  nav a{color:var(--cream);opacity:.75;text-decoration:none;font-size:.85rem;letter-spacing:.04em;
+    transition:opacity .2s;text-shadow:0 1px 10px rgba(0,0,0,.8)}
+  nav a:hover{opacity:1}
+  .nav-cta{background:var(--amber);color:var(--night)!important;opacity:1!important;
+    padding:.65rem 1.4rem;border-radius:999px;font-weight:600;font-size:.85rem;
+    box-shadow:0 0 30px rgba(224,170,78,.35)}
+
+  /* ===== Hero: сгенерированное ночное фото + живой WebGL-туман ===== */
+  .hero{position:relative;min-height:100vh;display:flex;align-items:flex-end;
+    background:url('assets/hero-night.jpg') center/cover no-repeat;overflow:hidden}
+  .hero .veil{position:absolute;inset:0;z-index:1;
+    background:linear-gradient(180deg,rgba(8,15,19,.35) 0%,transparent 30%,rgba(8,15,19,.25) 60%,rgba(8,15,19,.9) 96%,var(--night) 100%)}
+  /* Курсор-фонарь: тёплое свечение следует за мышью */
+  /* Статичный туман: мягкие светлые дымки, без анимации */
+  .fog{position:absolute;pointer-events:none;filter:blur(30px);z-index:2}
+  .fog-a{
+    bottom:-10%;left:-20%;width:140%;height:55%;opacity:.35;
+    background:radial-gradient(ellipse at 30% 60%,rgba(190,205,210,.24),transparent 60%),
+               radial-gradient(ellipse at 75% 40%,rgba(190,205,210,.18),transparent 55%);
+  }
+  .fog-b{
+    bottom:0;left:-30%;width:160%;height:40%;opacity:.3;
+    background:radial-gradient(ellipse at 60% 70%,rgba(160,180,190,.22),transparent 60%),
+               radial-gradient(ellipse at 20% 50%,rgba(160,180,190,.14),transparent 50%);
+  }
+  .fog-c{
+    top:10%;left:-10%;width:120%;height:45%;opacity:.3;
+    background:radial-gradient(ellipse at 50% 50%,rgba(170,190,200,.14),transparent 65%);
+  }
+  /* Мерцание газового фонаря на фото (большой фонарь справа) */
+  .lamp-flicker{position:absolute;z-index:2;right:8%;top:4%;width:34%;height:52%;pointer-events:none;
+    background:radial-gradient(ellipse at 55% 40%,rgba(255,214,140,.12),transparent 60%);
+    animation:flicker 7s ease-in-out infinite}
+  @keyframes flicker{
+    0%,100%{opacity:.75} 23%{opacity:.95} 41%{opacity:.6}
+    57%{opacity:1} 74%{opacity:.7} 88%{opacity:.9}
+  }
+  .hero-inner{position:relative;z-index:4;width:100%;padding:0 4vw 8vh;
+    display:flex;flex-direction:column;gap:1.7rem}
+  .hero-kicker{font-size:.75rem;letter-spacing:.35em;text-transform:uppercase;color:var(--amber);
+    text-shadow:0 1px 14px rgba(0,0,0,.8)}
+  .hero h1{font-family:'Fraunces',serif;font-weight:400;
+    font-size:clamp(2.8rem,7.5vw,6.5rem);line-height:1.02;letter-spacing:-.01em;max-width:14ch;
+    text-shadow:0 4px 40px rgba(0,0,0,.85)}
+  .hero h1 em{font-style:italic;color:var(--amber);text-shadow:0 0 45px rgba(224,170,78,.35)}
+  .hero-bottom{display:flex;flex-wrap:wrap;gap:1.2rem 3rem;align-items:center;justify-content:space-between}
+  .hero p.lead{max-width:46ch;color:#c3cdd0;font-size:1.02rem;text-shadow:0 1px 12px rgba(0,0,0,.8)}
+  .hero-cta{display:inline-flex;align-items:center;gap:.7rem;
+    background:var(--red);color:var(--cream);text-decoration:none;border:none;cursor:pointer;
+    padding:1rem 2rem;border-radius:999px;font-weight:600;font-size:.95rem;font-family:inherit;
+    box-shadow:0 0 40px rgba(201,64,47,.35),0 8px 30px rgba(0,0,0,.5);transition:transform .2s,box-shadow .2s}
+  .hero-cta:hover{transform:translateY(-2px);box-shadow:0 0 55px rgba(201,64,47,.5)}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:1rem 1.8rem;font-size:.8rem;color:var(--fog);align-items:center}
+  .hero-meta b{color:var(--cream);font-weight:600}
+  .hero-hint{font-size:.72rem;color:var(--fog);letter-spacing:.06em;opacity:.8}
+  .hero-hint b{color:var(--amber);font-weight:500}
+
+  /* Циферблат прямо на башне Биг-Бена: размер и позицию считает JS по cover-фото */
+  .tower-clock{
+    position:absolute;z-index:3;pointer-events:none;
+    background:none; /* циферблат — оригинальный, на фото; накладываем только стрелки */
+    opacity:0;transition:opacity 1s;
+  }
+  .tower-clock .t-hand{position:absolute;left:50%;bottom:50%;transform-origin:50% 100%;
+    background:#1c1608;border-radius:2px;
+    box-shadow:0 0 3px rgba(246,222,150,.6)} /* лёгкий контур, чтобы стрелки читались на светлом циферблате */
+  .tower-clock .t-h{width:5%;height:24%;margin-left:-2.5%}
+  .tower-clock .t-m{width:3.5%;height:34%;margin-left:-1.75%}
+  .tower-clock .t-s{width:1.8%;height:38%;margin-left:-0.9%;background:#3a2c10}
+  .tower-clock .t-pin{position:absolute;left:50%;top:50%;width:8%;height:8%;
+    transform:translate(-50%,-50%);border-radius:50%;background:#1c1608}
+
+  /* ===== Общие секции ===== */
+  section{position:relative;padding:7rem 4vw;z-index:2}
+  .kicker{font-size:.72rem;letter-spacing:.32em;text-transform:uppercase;color:var(--amber);margin-bottom:1rem}
+  h2{font-family:'Fraunces',serif;font-weight:400;font-size:clamp(2rem,4.2vw,3.4rem);line-height:1.08;letter-spacing:-.01em}
+  h2 em{font-style:italic;color:var(--amber)}
+
+  /* ===== Тема недели: бумажная афиша ===== */
+  .topic .grid{display:grid;grid-template-columns:1fr 1.4fr;gap:4rem;align-items:center;margin-top:3rem}
+  .poster{
+    position:relative;padding:2.6rem 2.4rem;border-radius:3px;
+    background:linear-gradient(165deg,#efe5cd,var(--paper) 55%,#d9cba9);
+    color:#2a2013;
+    box-shadow:0 30px 70px rgba(0,0,0,.6),0 0 60px rgba(224,170,78,.08);
+    transform:rotate(-1.6deg); /* афиша чуть перекошена, как приколотая */
+  }
+  .poster::before,.poster::after{ /* кнопки-гвоздики */
+    content:'';position:absolute;width:10px;height:10px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#8a7a5a,#3a2f1c);
+    box-shadow:0 2px 4px rgba(0,0,0,.4);top:12px;
+  }
+  .poster::before{left:14px}
+  .poster::after{right:14px}
+  .poster .no{font-size:.68rem;letter-spacing:.3em;text-transform:uppercase;color:#8a5a20;margin-bottom:1.2rem}
+  .poster h3{font-family:'Fraunces',serif;font-weight:500;font-size:2rem;line-height:1.12;margin-bottom:1.2rem}
+  .poster p{color:#5a4c33;font-size:.95rem}
+  .poster .pin-line{margin-top:1.6rem;padding-top:1rem;border-top:1px dashed #b3a37e;
+    font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:#8a5a20}
+  .topic-list{display:flex;flex-direction:column}
+  .topic-item{display:grid;grid-template-columns:110px 1fr auto;gap:1.5rem;align-items:center;
+    padding:1.6rem 0;border-bottom:1px solid var(--line)}
+  .topic-item:last-child{border-bottom:none}
+  .topic-item .who{font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--amber)}
+  .topic-item h4{font-family:'Fraunces',serif;font-weight:400;font-size:1.3rem}
+  .topic-item span{font-size:.8rem;color:var(--fog)}
+  .topic-item .tag{font-size:.72rem;border:1px solid var(--line);border-radius:999px;padding:.35rem .9rem;white-space:nowrap;color:var(--fog)}
+
+  /* ===== Группы: светящиеся окна с силуэтами ===== */
+  .groups-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1.5rem;margin-bottom:3rem}
+  .groups-head p{max-width:38ch;color:var(--fog);font-size:.92rem}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6rem}
+  .card{position:relative;background:linear-gradient(180deg,var(--night-3),var(--night-2));
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;
+    box-shadow:0 30px 70px rgba(0,0,0,.5);display:flex;flex-direction:column;
+    transition:transform .3s,border-color .3s}
+  .card:hover{transform:translateY(-6px);border-color:rgba(224,170,78,.35)}
+  /* Круглый стол в пабе: 8 мест вокруг него */
+  .table-scene{
+    position:relative;height:230px;margin:6px 8px 0;overflow:hidden;
+    background:
+      radial-gradient(ellipse at 50% 45%,rgba(255,196,100,.28),transparent 70%),
+      linear-gradient(180deg,#241a0c,#17100a);
+    border-radius:6px;
+    transition:filter .4s;
+  }
+  .card:hover .table-scene{filter:brightness(1.15)} /* свет над столом разгорается */
+  .table-scene .table{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:38%;height:42%;border-radius:50%;
+    background:radial-gradient(ellipse at 50% 35%,#6b4a22,#3a2812 75%);
+    border:2px solid #2b1d0d;
+    box-shadow:0 0 35px rgba(255,196,100,.25),inset 0 3px 10px rgba(255,220,150,.25);
+  }
+  .table-scene .table::after{ /* канделябр/свеча на столе */
+    content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:14px;height:14px;border-radius:50%;
+    background:radial-gradient(circle,#ffe9b0,#e0aa4e 60%,transparent 75%);
+    box-shadow:0 0 18px rgba(255,220,150,.8);
+  }
+  .seat{position:absolute;width:34px;height:34px;transform:translate(-50%,-50%)}
+  .seat svg{width:100%;height:100%;overflow:visible}
+  .seat .sil{fill:#0f0803} /* сидящий гость — тёмный силуэт на тёплом свету */
+  .seat.empty .sil{fill:none;stroke:rgba(236,228,211,.75);stroke-width:2} /* свободное место — яркий контур стула */
+  .seat.last .sil{fill:#5a1408;filter:drop-shadow(0 0 6px rgba(201,64,47,.8))}
+  .window .silhouettes{position:absolute;bottom:0;left:0;right:0;
+    display:flex;justify-content:center;align-items:flex-end;gap:7px;padding:0 12px}
+  /* Силуэт человечка: голова + плечи */
+  .person{width:22px;height:64px;position:relative;opacity:.9}
+  .person::before{content:'';position:absolute;left:50%;top:6px;width:13px;height:13px;margin-left:-6.5px;
+    border-radius:50%;background:var(--sil-color,#120a04)}
+  .person::after{content:'';position:absolute;left:50%;bottom:0;width:22px;height:40px;margin-left:-11px;
+    border-radius:11px 11px 0 0;background:var(--sil-color,#120a04)}
+  .person.empty{opacity:.28}
+  .person.empty::before,.person.empty::after{background:transparent;border:1.5px dashed rgba(236,228,211,.5)}
+  .person.empty::after{border-bottom:none}
+  .person.last::before,.person.last::after{background:#5a1408;box-shadow:0 0 14px rgba(201,64,47,.5)}
+  .card .body{padding:1.8rem;display:flex;flex-direction:column;gap:1rem;flex:1}
+  .card .time{font-size:.72rem;letter-spacing:.25em;text-transform:uppercase;color:var(--amber)}
+  .card h3{font-family:'Fraunces',serif;font-weight:500;font-size:1.6rem}
+  .card ul{list-style:none;display:flex;flex-direction:column;gap:.45rem;font-size:.88rem;color:var(--fog)}
+  .card ul li{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding-bottom:.4rem}
+  .card ul b{color:var(--cream);font-weight:500}
+  .card .price{font-family:'Fraunces',serif;font-size:1.5rem;color:var(--cream)}
+  .card .price small{font-size:.75rem;font-family:'Inter',sans-serif;color:var(--fog)}
+  .seats{margin-top:auto}
+  .seats .row{display:flex;justify-content:space-between;font-size:.78rem;color:var(--fog)}
+  .seats .row b{color:var(--cream)}
+  /* Твоё место: янтарный силуэт, 3 плавных вдоха свечения */
+  .seat.you{filter:drop-shadow(0 0 6px rgba(224,170,78,.55));animation:seatAppear .5s ease}
+  @keyframes seatAppear{from{opacity:0}to{opacity:1}} /* мягкое появление, без скачка масштаба */
+  .seat.you svg{animation:seatGlow 2.2s ease-in-out 3}
+  @keyframes seatGlow{
+    0%,100%{filter:drop-shadow(0 0 6px rgba(224,170,78,.55))}  /* начало и конец цикла совпадают — без сброса */
+    50%{filter:drop-shadow(0 0 16px rgba(224,170,78,1))}
+  }
+  /* Вспышка счётчика при обновлении */
+  .seats .row b.flash{animation:countFlash 1.4s ease}
+  @keyframes countFlash{
+    0%{color:var(--amber);text-shadow:0 0 20px rgba(224,170,78,.9)}
+    30%{color:var(--amber);text-shadow:0 0 26px rgba(224,170,78,1)}
+    100%{color:var(--cream);text-shadow:none}
+  }
+  .card .btn{margin-top:1.2rem;text-align:center;text-decoration:none;font-weight:600;font-size:.9rem;font-family:inherit;
+    background:var(--red);color:var(--cream);padding:.95rem;border:none;border-radius:6px;cursor:pointer;
+    box-shadow:0 0 25px rgba(201,64,47,.2);transition:box-shadow .2s}
+  .card .btn:hover{box-shadow:0 0 40px rgba(201,64,47,.45)}
+  .card .btn.disabled{background:rgba(236,228,211,.08);color:var(--fog);box-shadow:none;pointer-events:none}
+
+  /* ===== О преподавателе ===== */
+  .teacher{background:var(--night-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .teacher .grid{display:grid;grid-template-columns:1.1fr 1fr;gap:5rem;align-items:center}
+  .teacher p{color:var(--fog);font-size:1rem;max-width:52ch}
+  .teacher .name{font-family:'Fraunces',serif;font-size:2.2rem;font-weight:400;margin:.8rem 0 1.4rem}
+  .teacher .name em{color:var(--amber)}
+  .facts{display:grid;grid-template-columns:repeat(3,auto);gap:2.5rem;margin-top:2.8rem}
+  .facts .fact b{display:block;font-family:'Fraunces',serif;font-size:2.2rem;font-weight:400;color:var(--amber);
+    text-shadow:0 0 25px rgba(224,170,78,.25)}
+  .facts .fact span{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fog)}
+  .teacher-photo{position:relative;border-radius:8px;overflow:hidden;
+    box-shadow:0 40px 90px rgba(0,0,0,.7),0 0 60px rgba(224,170,78,.07);transform:rotate(1.5deg)}
+  .teacher-photo::after{content:'';position:absolute;inset:0;
+    background:linear-gradient(180deg,transparent 50%,rgba(8,15,19,.55))}
+  .teacher-photo img{width:100%;display:block}
+
+  /* ===== FAQ ===== */
+  .faq details{border-bottom:1px solid var(--line);padding:1.3rem 0;max-width:60ch}
+  .faq summary{cursor:pointer;font-weight:600;font-size:1rem;list-style:none;display:flex;justify-content:space-between;color:var(--cream)}
+  .faq summary::after{content:'+';color:var(--amber);font-size:1.3rem}
+  .faq details p{margin-top:.8rem;color:var(--fog);font-size:.92rem}
+
+  footer{position:relative;z-index:2;background:#050b0e;border-top:1px solid var(--line);
+    color:var(--fog);padding:3rem 4vw;display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem;font-size:.85rem}
+  footer .logo-foot{font-family:'Fraunces',serif;color:var(--cream);font-size:1.2rem}
+  footer a{color:var(--amber);text-decoration:none}
+
+  /* ===== Модальное окно записи ===== */
+  .modal-overlay{position:fixed;inset:0;z-index:100;background:rgba(5,11,14,.75);
+    backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;
+    padding:1.5rem;opacity:0;pointer-events:none;transition:opacity .3s}
+  .modal-overlay.open{opacity:1;pointer-events:auto}
+  .modal{position:relative;width:100%;max-width:480px;
+    background:linear-gradient(180deg,var(--night-3),var(--night-2));
+    border:1px solid rgba(224,170,78,.25);border-radius:12px;padding:2.6rem;
+    box-shadow:0 0 80px rgba(224,170,78,.08),0 40px 100px rgba(0,0,0,.7);
+    transform:translateY(24px);transition:transform .3s;overflow:hidden}
+  .modal::before{content:'';position:absolute;top:-30%;left:-20%;width:80%;height:60%;
+    background:radial-gradient(ellipse at center,rgba(224,170,78,.1),transparent 65%);pointer-events:none}
+  .modal-overlay.open .modal{transform:translateY(0)}
+  .modal .close{position:absolute;top:1.1rem;right:1.2rem;background:none;border:none;cursor:pointer;
+    color:var(--fog);font-size:1.6rem;line-height:1;transition:color .2s}
+  .modal .close:hover{color:var(--cream)}
+  .modal h3{font-family:'Fraunces',serif;font-weight:400;font-size:1.9rem;margin:.4rem 0 1.8rem}
+  .modal h3 em{font-style:italic;color:var(--amber)}
+  .modal .kicker{display:block}
+  .modal-group{
+    text-align:center;font-family:'Fraunces',serif;font-size:1.15rem;color:var(--amber);
+    margin:-0.8rem 0 1.6rem;
+  }
+  .modal .note{text-align:center}
+  .modal form{display:flex;flex-direction:column;gap:1.1rem;position:relative}
+  .modal label{display:block;font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--fog);margin-bottom:.45rem}
+  .modal select,.modal input{width:100%;padding:.95rem 1.1rem;border:1px solid var(--line);border-radius:6px;
+    background:rgba(8,15,19,.7);font:inherit;font-size:.95rem;color:var(--cream);color-scheme:dark}
+  .modal select:focus,.modal input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 20px rgba(224,170,78,.15)}
+  .modal input::placeholder{color:#5a6d74}
+  .modal .form-cta{background:var(--red);color:var(--cream);border:none;cursor:pointer;font-family:inherit;
+    padding:1.05rem;border-radius:999px;font-weight:600;font-size:1rem;margin-top:.6rem;
+    box-shadow:0 0 35px rgba(201,64,47,.3);transition:transform .2s}
+  .modal .form-cta:hover{transform:translateY(-2px)}
+  .modal .note{font-size:.8rem;color:var(--fog)}
+
+  @media(max-width:960px){
+    .topic .grid,.teacher .grid{grid-template-columns:1fr;gap:2.5rem}
+    .cards{grid-template-columns:1fr}
+    .facts{grid-template-columns:repeat(3,1fr);gap:1.2rem}
+    nav a:not(.nav-cta){display:none}
+    .topic-item{grid-template-columns:1fr;gap:.4rem}
+    .modal{padding:2rem 1.5rem}
+    /* Компактная шапка на телефоне */
+    header{padding:1.1rem 4vw}
+    .logo{gap:.6rem}
+    .logo .mark{font-size:1.1rem;white-space:nowrap}
+    .logo .divider{height:18px}
+    .logo .sub{font-size:.55rem;letter-spacing:.2em}
+    .nav-cta{padding:.5rem 1rem;font-size:.78rem}
+  }
+</style>
+</head>
+<body>
+
+<div class="ambience"></div>
+
+<header>
+  <div class="logo">
+    <span class="mark">Нева&#8202;—&#8202;Темза</span>
+    <span class="divider"></span>
+    <span class="sub">Speaking Club</span>
+  </div>
+  <nav>
+    <a href="#topic">Тема недели</a>
+    <a href="#groups">Группы</a>
+    <a href="#teacher">Преподаватель</a>
+    <a href="#groups" class="nav-cta">Записаться</a>
+  </nav>
+</header>
+
+<!-- Hero: ночная набережная Темзы -->
+<section class="hero" id="hero">
+  <div class="veil"></div>
+  <!-- Статичный туман: только CSS, без WebGL и анимаций -->
+  <div class="fog fog-c"></div>
+  <div class="fog fog-a"></div>
+  <div class="fog fog-b"></div>
+  <div class="lamp-flicker"></div>
+  <!-- Живой циферблат на башне: тикает, показывает время Лондона -->
+  <div class="tower-clock" id="tower-clock">
+    <span class="t-hand t-h" id="hand-h"></span>
+    <span class="t-hand t-m" id="hand-m"></span>
+    <span class="t-hand t-s" id="hand-s"></span>
+    <span class="t-pin"></span>
+  </div>
+  <div id="lantern"></div>
+  <div class="hero-inner">
+    <span class="hero-kicker">Онлайн · каждое воскресенье · до 8 человек</span>
+    <h1>Заговорите по&#8209;английски <em>как в Лондоне</em></h1>
+    <div class="hero-bottom">
+      <p class="lead">Разговорный клуб «Нева-Темза» — живые дискуссии на современные темы в мини-группах. Без скучной грамматики, только реальная речь и весёлые игры.</p>
+    </div>
+    <div class="hero-meta">
+      <span>Ближайшая встреча — <b>воскресенье, 8 ноября</b></span>
+      <span>Уровень — <b>от A2 / Pre-Intermediate</b></span>
+      <span>Формат — <b>онлайн, 30–45 мин</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- О преподавателе -->
+<section class="teacher" id="teacher">
+  <div class="grid">
+    <div>
+      <span class="kicker">О преподавателе</span>
+      <div class="name">Алла — <em>ваш гид в английском</em></div>
+      <p>«Преподаю английский всю жизнь — и моя страсть к этому только растёт. “Нева-Темза” — это современные разговорные сессии, где вы не просто ломаете языковой барьер, а быстро достигаете беглости».</p>
+      <div class="facts">
+        <div class="fact"><b>СПбГУ</b><span>Магистр, лингвистика</span></div>
+        <div class="fact"><b>Houston</b><span>University of St. Thomas</span></div>
+        <div class="fact"><b>100%</b><span>живая практика</span></div>
+      </div>
+    </div>
+    <div class="teacher-photo"><img src="assets/phonebox.jpg" alt="Красная телефонная будка в лондонском тумане"></div>
+  </div>
+</section>
+
+<!-- Тема недели: афиша на туманной улице -->
+<section class="topic" id="topic">
+  <span class="kicker">Тема недели</span>
+  <h2>Выпуск №1 · <em>Sunday, November 8</em></h2>
+  <div class="grid">
+    <div class="poster">
+      <div class="no">Взрослая группа · Adults · 20:00</div>
+      <h3>“The Time Traveler’s Dilemma”</h3>
+      <p>If you could change the past or preview the future — where would you go? Обсуждаем условные конструкции, спорим об этике изменения истории и делимся фантазиями о будущем. От H.G. Wells до наших дней.</p>
+      <div class="pin-line">45 минут · 450 ₽ · Pre-Intermediate+</div>
+    </div>
+    <div class="topic-list">
+      <div class="topic-item">
+        <div class="who">Adults<br>20:00 · 45 мин</div>
+        <div><h4>The Time Traveler’s Dilemma</h4><span>Путешествия во времени, условные конструкции</span></div>
+        <div class="tag">Pre-Intermediate+</div>
+      </div>
+      <div class="topic-item">
+        <div class="who">Teens<br>19:00 · 40 мин</div>
+        <div><h4>Mental Health &amp; Wellness</h4><span>Стресс, сон, тревога — говорим о важном без осуждения</span></div>
+        <div class="tag">Pre-Intermediate+</div>
+      </div>
+      <div class="topic-item">
+        <div class="who">Kids<br>18:00 · 30 мин</div>
+        <div><h4>Welcome to the Jungle!</h4><span>Дикие животные, игра «Who am I?», свой фантазийный зверь</span></div>
+        <div class="tag">Elementary</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Группы: три светящихся окна -->
+<section id="groups">
+  <div class="groups-head">
+    <div>
+      <span class="kicker">Расписание и группы</span>
+      <h2>Выберите свою <em>группу</em></h2>
+    </div>
+    <p>Не более восьми человек — каждый получает время поговорить. Силуэты за столом — занятые места, контур стула — свободное.</p>
+  </div>
+  <div class="cards" id="groups-list">
+
+    <!-- Adults: 5 из 8 -->
+    <div class="card" data-card="adults">
+      <div class="table-scene">
+        <div class="table"></div>
+          <span class="seat" data-seat style="left:50.0%;top:90.0%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:91.0%;top:50.0%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:9.0%;top:50.0%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:79.0%;top:78.3%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:21.0%;top:78.3%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat empty" data-seat style="left:79.0%;top:21.7%"><svg viewBox="0 0 34 34"><path d="M10 3 h14 v12 h-14 Z M7 20 h20 M10 20 v11 M24 20 v11" fill="none" stroke="rgba(236,228,211,.85)" stroke-width="2" stroke-linejoin="round"/></svg></span>
+          <span class="seat empty" data-seat style="left:21.0%;top:21.7%"><svg viewBox="0 0 34 34"><path d="M10 3 h14 v12 h-14 Z M7 20 h20 M10 20 v11 M24 20 v11" fill="none" stroke="rgba(236,228,211,.85)" stroke-width="2" stroke-linejoin="round"/></svg></span>
+          <span class="seat empty" data-seat style="left:50.0%;top:10.0%"><svg viewBox="0 0 34 34"><path d="M10 3 h14 v12 h-14 Z M7 20 h20 M10 20 v11 M24 20 v11" fill="none" stroke="rgba(236,228,211,.85)" stroke-width="2" stroke-linejoin="round"/></svg></span>
+      </div>
+      <div class="body">
+        <span class="time">Воскресенье · 20:00</span>
+        <h3>Adults</h3>
+        <ul>
+          <li><span>Длительность</span><b>45 минут</b></li>
+          <li><span>Уровень</span><b>Pre-Intermediate+</b></li>
+          <li><span>Тема недели</span><b>Time Traveler</b></li>
+        </ul>
+        <div class="price">450 ₽ <small>/ встреча</small></div>
+        <div class="seats"><div class="row"><span>Записано</span><b>5 из 8 мест</b></div></div>
+        <button class="btn" data-book data-group="adults">Записаться</button>
+      </div>
+    </div>
+
+    <!-- Teens: 7 из 8, последнее место -->
+    <div class="card" data-card="teens">
+      <div class="table-scene">
+        <div class="table"></div>
+          <span class="seat" data-seat style="left:50.0%;top:90.0%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:91.0%;top:50.0%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:9.0%;top:50.0%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:79.0%;top:78.3%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:21.0%;top:78.3%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:79.0%;top:21.7%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:21.0%;top:21.7%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat empty" data-seat style="left:50.0%;top:10.0%"><svg viewBox="0 0 34 34" style="filter:drop-shadow(0 0 5px rgba(201,64,47,.8))"><path d="M10 3 h14 v12 h-14 Z M7 20 h20 M10 20 v11 M24 20 v11" fill="none" stroke="#c9402f" stroke-width="2" stroke-linejoin="round"/></svg></span>
+      </div>
+      <div class="body">
+        <span class="time">Воскресенье · 19:00</span>
+        <h3>Teens</h3>
+        <ul>
+          <li><span>Длительность</span><b>40 минут</b></li>
+          <li><span>Уровень</span><b>Pre-Intermediate+</b></li>
+          <li><span>Тема недели</span><b>Mental Health</b></li>
+        </ul>
+        <div class="price">300 ₽ <small>/ встреча</small></div>
+        <div class="seats"><div class="row"><span style="color:var(--red);font-weight:600">Осталось 1 место!</span><b>7 из 8</b></div></div>
+        <button class="btn" data-book data-group="teens">Записаться</button>
+      </div>
+    </div>
+
+    <!-- Kids: 8 из 8 -->
+    <div class="card" data-card="kids">
+      <div class="table-scene">
+        <div class="table"></div>
+          <span class="seat" data-seat style="left:50.0%;top:90.0%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:91.0%;top:50.0%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:9.0%;top:50.0%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:79.0%;top:78.3%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:21.0%;top:78.3%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:79.0%;top:21.7%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:21.0%;top:21.7%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+          <span class="seat" data-seat style="left:50.0%;top:10.0%"><svg viewBox="0 0 34 34"><circle cx="17" cy="8" r="6" fill="#0f0803"/><path d="M4 34 Q4 18 17 18 Q30 18 30 34 Z" fill="#0f0803"/></svg></span>
+      </div>
+      <div class="body">
+        <span class="time">Воскресенье · 18:00</span>
+        <h3>Kids · Elementary</h3>
+        <ul>
+          <li><span>Длительность</span><b>30 минут</b></li>
+          <li><span>Уровень</span><b>Elementary</b></li>
+          <li><span>Тема недели</span><b>Jungle Safari</b></li>
+        </ul>
+        <div class="price">200 ₽ <small>/ встреча</small></div>
+        <div class="seats"><div class="row"><span>Группа заполнена</span><b>8 из 8</b></div></div>
+        <button class="btn disabled" disabled>Мест нет</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <span class="kicker">Вопросы</span>
+  <h2 style="margin-bottom:2rem">Частые <em>вопросы</em></h2>
+  <details><summary>Как проходит встреча онлайн?</summary><p>По ссылке в Zoom. Разговорная часть, словарная подпитка и игры — всё в живом диалоге, без лекций.</p></details>
+  <details><summary>Мой уровень ниже A2 — можно ли прийти?</summary><p>Группы стартуют от Pre-Intermediate. Напишите нам в Telegram — подскажем, как быстро добрать базу.</p></details>
+  <details><summary>Что если я занял место, но не смог прийти?</summary><p>Предупредите заранее в Telegram, и мы перенесём запись на следующую неделю.</p></details>
+</section>
+
+<footer>
+  <div class="logo-foot">Нева—Темза</div>
+  <div>Neva–Thames Speaking Club · онлайн</div>
+  <div>Telegram: <a href="#">@poetryalla</a></div>
+</footer>
+
+<!-- Модальное окно записи -->
+<div class="modal-overlay" id="booking-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Запись в клуб">
+    <button class="close" id="modal-close" aria-label="Закрыть">×</button>
+    <span class="kicker" style="text-align:center">Запись в клуб</span>
+    <h3 style="text-align:center">Займите место <em>за минуту</em></h3>
+    <p class="modal-group" id="modal-group-name"></p>
+    <form id="booking-form">
+      <div>
+        <label for="name">Имя</label>
+        <input id="name" type="text" placeholder="Как к вам обращаться" required>
+      </div>
+      <div>
+        <label for="phone">Телефон</label>
+        <input id="phone" type="tel" placeholder="+7 (___) ___-__-__" required>
+      </div>
+      <button class="form-cta" type="submit">Подтвердить запись</button>
+      <p class="note">Преподавателю сразу придёт уведомление в Telegram. Место закрепляется после подтверждения оплаты.</p>
+      <p class="note" id="form-status" role="alert"></p>
+    </form>
+    <div id="booking-result" hidden>
+      <p class="note" id="booking-status" role="status"></p>
+      <a id="manage-link" class="form-cta" style="display:block;text-align:center;text-decoration:none" target="_blank" rel="noopener">Управлять записью в Telegram</a>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+/* =====================================================
+   2. Циферблат на башне Биг-Бена: реальное время Лондона.
+      Позиция и размер вычисляются по cover-масштабу фото,
+      чтобы часы всегда сидели точно на циферблате башни.
+   ===================================================== */
+(function(){
+  const clock = document.getElementById('tower-clock');
+  const hero = document.getElementById('hero');
+  const IMG_W = 2560, IMG_H = 1440;          // размеры исходного фото
+  const CX = 0.6115, CY = 0.3885;            // центр циферблата в долях фото
+  const D  = 0.0265;                         // диаметр циферблата (доля ширины фото)
+
+  function place(){
+    const w = hero.clientWidth, h = hero.clientHeight;
+    const scale = Math.max(w/IMG_W, h/IMG_H); // background-size: cover
+    const dw = IMG_W*scale, dh = IMG_H*scale;
+    const ox = (w-dw)/2, oy = (h-dh)/2;
+    const d = IMG_W*D*scale;
+    clock.style.width = clock.style.height = d+'px';
+    clock.style.left = (ox + CX*dw - d/2)+'px';
+    clock.style.top  = (oy + CY*dh - d/2)+'px';
+    clock.style.opacity = 1;
+  }
+  place();
+  window.addEventListener('resize', place);
+
+  const h=document.getElementById('hand-h'), m=document.getElementById('hand-m'),
+        s=document.getElementById('hand-s');
+  function tick(){
+    // Лондонское время через Intl (учитывает летнее время)
+    const parts = new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(new Date());
+    const get = t => +parts.find(p=>p.type===t).value;
+    const hh=get('hour'), mm=get('minute'), ss=get('second');
+    h.style.transform = `rotate(${(hh%12)*30 + mm*0.5}deg)`;
+    m.style.transform = `rotate(${mm*6 + ss*0.1}deg)`;
+    s.style.transform = `rotate(${ss*6}deg)`; // секундная стрелка тикает каждую секунду
+  }
+  tick(); setInterval(tick, 1000);
+})();
+
+/* =====================================================
+   3. Модальное окно записи
+   ===================================================== */
+(function(){
+  const apiBase = (window.API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+  const cards = document.getElementById('groups-list');
+  const overlay = document.getElementById('booking-modal');
+  const groupNameEl = document.getElementById('modal-group-name');
+  const form = document.getElementById('booking-form');
+  const formStatus = document.getElementById('form-status');
+  const result = document.getElementById('booking-result');
+  const resultStatus = document.getElementById('booking-status');
+  const manageLink = document.getElementById('manage-link');
+  const submitButton = form.querySelector('.form-cta');
+  const occupiedSvg = '<svg viewBox="0 0 34 34"><circle class="sil" cx="17" cy="8" r="6"/><path class="sil" d="M4 34 Q4 18 17 18 Q30 18 30 34 Z"/></svg>';
+  const emptySvg = '<svg viewBox="0 0 34 34"><path class="sil" d="M10 3 h14 v12 h-14 Z M7 20 h20 M10 20 v11 M24 20 v11" fill="none" stroke-width="2" stroke-linejoin="round"/></svg>';
+  let chosenGroup = null;
+
+  function make(tag, className, text){
+    const element = document.createElement(tag);
+    if(className) element.className = className;
+    if(text !== undefined) element.textContent = text;
+    return element;
+  }
+
+  function formatDate(value){
+    return new Date(`${value}T00:00:00`).toLocaleDateString('ru-RU', {day:'numeric', month:'long'});
+  }
+
+  function createCard(group){
+    const card = make('div', 'card');
+    const scene = make('div', 'table-scene');
+    scene.append(make('div', 'table'));
+    for(let index = 0; index < group.capacity; index++){
+      const empty = index >= group.booked;
+      const seat = make('span', `seat${empty ? ' empty' : ''}${empty && group.capacity - group.booked === 1 ? ' last' : ''}`);
+      const angle = 2 * Math.PI * index / group.capacity;
+      seat.style.left = `${50 + 41 * Math.sin(angle)}%`;
+      seat.style.top = `${50 + 40 * Math.cos(angle)}%`;
+      seat.innerHTML = empty ? emptySvg : occupiedSvg;
+      scene.append(seat);
+    }
+    card.append(scene);
+
+    const body = make('div', 'body');
+    body.append(make('span', 'time', `${group.day_of_week} · ${formatDate(group.meeting_date)} · ${group.starts_at}`));
+    body.append(make('h3', '', group.name));
+    const facts = make('ul');
+    for(const [label, value] of [
+      ['Длительность', `${group.duration_min} минут`],
+      ['Уровень', group.level],
+      ['Тема встречи', group.topic]
+    ]){
+      const item = make('li');
+      item.append(make('span', '', label), make('b', '', value));
+      facts.append(item);
+    }
+    body.append(facts);
+    const price = make('div', 'price', `${group.price} ₽ `);
+    price.append(make('small', '', '/ встреча'));
+    body.append(price);
+
+    const seats = make('div', 'seats');
+    const row = make('div', 'row');
+    const remaining = group.capacity - group.booked;
+    row.append(
+      make('span', '', remaining === 0 ? 'Группа заполнена' : remaining === 1 ? 'Осталось 1 место!' : 'Записано'),
+      make('b', '', `${group.booked} из ${group.capacity}`)
+    );
+    seats.append(row);
+    body.append(seats);
+    const button = make('button', `btn${remaining === 0 ? ' disabled' : ''}`, remaining === 0 ? 'Мест нет' : 'Записаться');
+    button.type = 'button';
+    button.disabled = remaining === 0;
+    if(remaining > 0) button.addEventListener('click', ()=>openModal(group));
+    body.append(button);
+    card.append(body);
+    return card;
+  }
+
+  async function loadGroups(){
+    try{
+      const response = await fetch(`${apiBase}/api/groups`);
+      if(!response.ok) throw new Error('Request failed');
+      const groups = await response.json();
+      cards.replaceChildren();
+      if(!groups.length){
+        cards.append(make('p', '', 'Ближайших встреч пока нет.'));
+        return;
+      }
+      groups.forEach(group=>cards.append(createCard(group)));
+    }catch(error){
+      cards.replaceChildren(make('p', '', 'Не удалось загрузить группы. Попробуйте обновить страницу позже.'));
+    }
+  }
+
+  function openModal(group){
+    chosenGroup = group;
+    groupNameEl.textContent = `${group.name} · ${formatDate(group.meeting_date)} ${group.starts_at} · ${group.price} ₽`;
+    form.reset();
+    form.hidden = false;
+    formStatus.textContent = '';
+    result.hidden = true;
+    submitButton.disabled = false;
+    submitButton.textContent = 'Подтвердить запись';
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal(){
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  overlay.addEventListener('click', event=>{ if(event.target === overlay) closeModal(); });
+  document.addEventListener('keydown', event=>{ if(event.key === 'Escape') closeModal(); });
+
+  form.addEventListener('submit', async event=>{
+    event.preventDefault();
+    if(!chosenGroup || submitButton.disabled) return;
+    submitButton.disabled = true;
+    submitButton.textContent = 'Отправляем…';
+    formStatus.textContent = '';
+    try{
+      const response = await fetch(`${apiBase}/api/booking`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          group_id: chosenGroup.id,
+          name: document.getElementById('name').value,
+          phone: document.getElementById('phone').value
+        })
+      });
+      const data = await response.json().catch(()=>({}));
+      if(!response.ok){
+        const detail = Array.isArray(data.detail)
+          ? data.detail.map(item=>item.msg.replace(/^Value error, /, '')).join('. ')
+          : data.detail;
+        throw new Error(detail || 'Не удалось создать запись. Попробуйте ещё раз.');
+      }
+      form.hidden = true;
+      result.hidden = false;
+      resultStatus.textContent = data.duplicate
+        ? 'Такая запись уже существует. Для управления ею откройте бота и нажмите «Мои записи».'
+        : 'Место записано. Сохраните ссылку ниже, чтобы посмотреть или отменить запись.';
+      manageLink.hidden = !data.manage_url;
+      if(data.manage_url) manageLink.href = data.manage_url;
+      await loadGroups();
+    }catch(error){
+      formStatus.textContent = error.message || 'Ошибка соединения. Проверьте интернет и попробуйте ещё раз.';
+    }finally{
+      if(!form.hidden){
+        submitButton.disabled = false;
+        submitButton.textContent = 'Подтвердить запись';
+      }
+    }
+  });
+
+  loadGroups();
+})();
+</script>
+
+</body>
+</html>

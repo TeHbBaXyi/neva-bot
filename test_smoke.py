@@ -5,8 +5,9 @@ import socket
 import subprocess
 import time
 from contextlib import contextmanager
-from datetime import time as dtime
-from unittest.mock import patch
+from datetime import date, time as dtime, timedelta
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 
 
 def free_port() -> int:
@@ -72,24 +73,32 @@ class FakeBot:
     async def send_message(self, admin_id, text):
         self.messages.append((admin_id, text))
 
+    async def get_me(self):
+        return SimpleNamespace(username="neva_test_bot")
+
 
 async def run_scenario():
     import httpx
 
     import notify
+    from sqlalchemy import text
+
     from api.main import app
-    from db import Base, Session, engine, init_db
-    from models import Group
+    from bot.user_handlers import user_confirm_cancel, user_start
+    from db import Base, Session, engine
+    from models import Booking, BookingStatus, Group
 
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
-        await init_db()
+            await conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
+        subprocess.run(["python", "-m", "alembic", "upgrade", "head"], check=True)
 
         async with Session.begin() as session:
             group = Group(
                 name="Adults",
                 day_of_week="Воскресенье",
+                meeting_date=date.today() + timedelta(days=7),
                 starts_at=dtime(20, 0),
                 duration_min=60,
                 price=1000,
@@ -112,22 +121,51 @@ async def run_scenario():
                 assert response.status_code == 200, response.text
                 assert response.json()[0]["booked"] == 0
 
+                first_booking_id = None
+                first_manage_url = None
                 for index in range(8):
                     response = await client.post(
                         "/api/booking",
                         json={
                             "group_id": group_id,
-                            "name": f"Student {index + 1}",
+                            "name": "Student",
                             "phone": f"+7999000000{index}",
                         },
                     )
                     assert response.status_code == 201, response.text
+                    if index == 0:
+                        first_booking_id = response.json()["booking_id"]
+                        first_manage_url = response.json()["manage_url"]
+                        assert first_manage_url.startswith("https://t.me/neva_test_bot?start=")
 
                 response = await client.post(
                     "/api/booking",
                     json={
                         "group_id": group_id,
-                        "name": "Student 9",
+                        "name": "  Student  ",
+                        "phone": "8 (999) 000-00-00",
+                    },
+                )
+                assert response.status_code == 200, response.text
+                assert response.json() == {
+                    "ok": True,
+                    "booking_id": first_booking_id,
+                    "duplicate": True,
+                }
+
+                for invalid_payload in (
+                    {"group_id": 0, "name": "Student", "phone": "+79990000000"},
+                    {"group_id": group_id, "name": "123", "phone": "+79990000000"},
+                    {"group_id": group_id, "name": "Student", "phone": "abc"},
+                ):
+                    response = await client.post("/api/booking", json=invalid_payload)
+                    assert response.status_code == 422, response.text
+
+                response = await client.post(
+                    "/api/booking",
+                    json={
+                        "group_id": group_id,
+                        "name": "Student",
                         "phone": "+79990000009",
                     },
                 )
@@ -142,6 +180,42 @@ async def run_scenario():
         admin_id, text = bot.messages[-1]
         assert admin_id == 4242
         assert "Группа: Adults, Воскресенье 20:00" in text
+
+        manage_token = first_manage_url.rsplit("=", 1)[1]
+        message = SimpleNamespace(
+            text=f"/start {manage_token}",
+            from_user=SimpleNamespace(id=777),
+            answer=AsyncMock(),
+        )
+        await user_start(message)
+        assert message.answer.await_count == 2
+
+        other_user_callback = SimpleNamespace(
+            data=f"user:confirm:{first_booking_id}",
+            from_user=SimpleNamespace(id=778),
+            message=SimpleNamespace(edit_text=AsyncMock()),
+            bot=bot,
+            answer=AsyncMock(),
+        )
+        await user_confirm_cancel(other_user_callback)
+        other_user_callback.answer.assert_awaited_once_with(
+            "Запись недоступна",
+            show_alert=True,
+        )
+
+        owner_callback = SimpleNamespace(
+            data=f"user:confirm:{first_booking_id}",
+            from_user=SimpleNamespace(id=777),
+            message=SimpleNamespace(edit_text=AsyncMock()),
+            bot=bot,
+            answer=AsyncMock(),
+        )
+        await user_confirm_cancel(owner_callback)
+        async with Session() as session:
+            cancelled = await session.get(Booking, first_booking_id)
+            assert cancelled.status == BookingStatus.CANCELLED
+        assert len(bot.messages) == 9
+        assert "отменена" in bot.messages[-1][1].lower()
     finally:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)

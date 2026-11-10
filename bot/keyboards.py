@@ -1,29 +1,21 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from bot.dates import WEEKDAYS, upcoming_meeting_dates
 from models import Group
 
 
 def groups_kb(groups: list[Group]) -> InlineKeyboardMarkup:
-    """Список групп, отсортированный по дню недели и времени."""
-    days = {
-        "Понедельник": "Пн",
-        "Вторник": "Вт",
-        "Среда": "Ср",
-        "Четверг": "Чт",
-        "Пятница": "Пт",
-        "Суббота": "Сб",
-        "Воскресенье": "Вс",
-    }
-    day_order = {day: index for index, day in enumerate(days)}
+    """Список групп, отсортированный по дате и времени."""
+    days = dict(zip(WEEKDAYS, ("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")))
     sorted_groups = sorted(
         groups,
-        key=lambda g: (day_order.get(g.day_of_week, 7), g.starts_at, g.name, g.level),
+        key=lambda g: (g.meeting_date, g.starts_at, g.name, g.level),
     )
     rows = [
         [InlineKeyboardButton(
             text=(
                 f"{g.name} · {g.level.rsplit(' / ', 1)[-1]} · "
-                f"{days.get(g.day_of_week, g.day_of_week)} · {g.starts_at:%H:%M}"
+                f"{g.meeting_date:%d.%m} · {g.starts_at:%H:%M}"
             ),
             callback_data=f"group:{g.id}",
         )]
@@ -34,11 +26,28 @@ def groups_kb(groups: list[Group]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def meeting_dates_kb(day_of_week, starts_at=None, now=None) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text=f"{day_of_week} · {meeting_date:%d.%m.%Y}",
+            callback_data=f"group_form:date:{meeting_date.isoformat()}",
+        )]
+        for meeting_date in upcoming_meeting_dates(day_of_week, starts_at, now)
+    ])
+
+
 def group_actions_kb(group_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="👥 Записавшиеся", callback_data=f"group:bookings:{group_id}")],
         [InlineKeyboardButton(text="✏️ Редактировать", callback_data=f"group:edit:{group_id}")],
         [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"group:del:{group_id}")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="group:list")],
+    ])
+
+
+def group_bookings_kb(group_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад", callback_data=f"group:{group_id}")],
     ])
 
 
@@ -50,8 +59,9 @@ def group_form_kb() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="День недели", callback_data="group_form:edit:day_of_week"),
-            InlineKeyboardButton(text="Время", callback_data="group_form:edit:starts_at"),
+            InlineKeyboardButton(text="Дата", callback_data="group_form:edit:meeting_date"),
         ],
+        [InlineKeyboardButton(text="Время", callback_data="group_form:edit:starts_at")],
         [
             InlineKeyboardButton(text="Длительность", callback_data="group_form:edit:duration_min"),
             InlineKeyboardButton(text="Цена", callback_data="group_form:edit:price"),
@@ -71,13 +81,9 @@ def group_names_kb() -> InlineKeyboardMarkup:
 
 
 def weekdays_kb() -> InlineKeyboardMarkup:
-    days = (
-        "Понедельник", "Вторник", "Среда", "Четверг",
-        "Пятница", "Суббота", "Воскресенье",
-    )
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=day, callback_data=f"group_form:day:{day}")]
-        for day in days
+        for day in WEEKDAYS
     ])
 
 

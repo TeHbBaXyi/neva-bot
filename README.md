@@ -1,26 +1,122 @@
-# neva-bot
+# Нева-Темза: сайт, API и Telegram-бот
 
-Бэкенд клуба разговорного английского «Нева-Темза»: Telegram-бот-админка + API записи для сайта.
+Единый репозиторий клуба разговорного английского «Нева-Темза»:
 
-## Стек
-aiogram 3 (бот) · FastAPI (API) · SQLAlchemy 2 async · PostgreSQL
+- `site/` — сайт и его изображения;
+- `api/` — FastAPI с `GET /api/groups` и `POST /api/booking`;
+- `bot/` — Telegram-админка групп в режиме polling;
+- `booking.py` — атомарная запись с серверным лимитом мест;
+- `docker-compose.yml` — профили `local` и `prod`.
 
-## Запуск локально
-1. `copy .env.example .env` → вписать BOT_TOKEN (от @BotFather) и ADMIN_IDS (telegram id администраторов через запятую)
-2. Поднять Postgres (Docker): `docker run -d -p 5432:5432 -e POSTGRES_USER=neva -e POSTGRES_PASSWORD=neva -e POSTGRES_DB=neva_bot postgres:16`
-3. `pip install -r requirements.txt`
-4. Бот: `py -m bot.main` (Windows) / `python -m bot.main`
-5. API: `py -m api.main` → сайт смотрит на http://127.0.0.1:8000/api/groups
+Стек: Python 3.12, aiogram 3, FastAPI, SQLAlchemy 2 async, PostgreSQL 17.
 
-## Структура
-- `bot/` — хендлеры админки (FSM: добавление группы по шагам), клавиатуры
-- `api/` — FastAPI: GET /api/groups, POST /api/booking
-- `booking.py` — атомарная запись с лимитом мест (SELECT ... FOR UPDATE)
-- `notify.py` — уведомления преподавателю
-- `models.py`, `db.py`, `config.py` — общие слои
+## Локальный запуск на Windows
 
-## TODO (следующие фичи)
-- [ ] Редактирование группы (сейчас только добавить/удалить/посмотреть)
-- [ ] Команда /today — список записанных на сегодня
-- [ ] Отмена записи из бота
-- [ ] Webhook в проде вместо polling
+Нужны Docker Desktop, локально установленный PostgreSQL 17, токен от @BotFather и числовой Telegram ID администратора. Контейнер PostgreSQL локально не создаётся: порт 5432 остаётся вашей установленной PostgreSQL 17.
+
+### 1. Создайте базу
+
+Выполните одну команду в PowerShell:
+
+```powershell
+& "C:\Program Files\PostgreSQL\17\bin\createdb.exe" -U postgres -h 127.0.0.1 neva_bot
+```
+
+Если `createdb` уже добавлен в `PATH`, достаточно `createdb -U postgres neva_bot`. Миграции Alembic автоматически выполняются при запуске API.
+
+### 2. Заполните `.env`
+
+Скопируйте шаблон:
+
+```powershell
+copy .env.example .env
+```
+
+Откройте `.env` и укажите:
+
+```dotenv
+BOT_TOKEN=реальный_токен_от_BotFather
+ADMIN_IDS=ваш_числовой_Telegram_ID
+DATABASE_URL=postgresql+asyncpg://postgres:пароль_postgres@host.docker.internal:5432/neva_bot
+POSTGRES_PASSWORD=
+```
+
+Если в пароле PostgreSQL есть `@`, `:`, `/`, `#` или `?`, его нужно URL-кодировать. Не добавляйте `.env` в Git: файл уже перечислен в `.gitignore`.
+
+### 3. Запустите API и бота
+
+В каталоге репозитория:
+
+```powershell
+docker compose --profile local up --build
+```
+
+Будут запущены только `api` и `bot`. Проверки:
+
+- Swagger и проверка запуска API: <http://127.0.0.1:8000/docs>;
+- Telegram: отправьте боту `/start`, затем `/groups` и создайте группу;
+- адрес API сайта находится в `site/config.js` и по умолчанию равен `http://127.0.0.1:8000`.
+
+Остановка: `Ctrl+C`, затем `docker compose --profile local down`. Данные локальной PostgreSQL сохраняются.
+
+Если контейнер не может подключиться к базе, проверьте, что PostgreSQL запущен и принимает подключения Docker Desktop. В `postgresql.conf` должен быть `listen_addresses = '*'`, а в `pg_hba.conf` — разрешение для подсети Docker с методом `scram-sha-256`; после изменения этих файлов перезапустите службу PostgreSQL.
+
+## Дополнительные возможности
+
+Оплата, отправка ссылки на Zoom и автоматические напоминания участникам пока не реализованы.
+
+## Деплой на новый VPS одной командой
+
+Нужен новый Ubuntu 24.04 VPS с root-доступом по SSH. Аренда сервера и домена требуется только для публичного запуска; для локальной демонстрации они не нужны.
+
+На своей машине откройте Git Bash или WSL в каталоге репозитория. Локальный `.env` уже должен содержать настоящие `BOT_TOKEN` и `ADMIN_IDS`, после чего выполните:
+
+```bash
+./deploy.sh 203.0.113.10
+```
+
+Вместо `203.0.113.10` укажите IP вашего VPS. Скрипт:
+
+1. устанавливает Docker, Docker Compose, Nginx и необходимые утилиты;
+2. загружает репозиторий в `/opt/neva-bot` без отправки локальной базы и `.git`;
+3. создаёт отдельный случайный пароль серверной PostgreSQL;
+4. подставляет IP сервера в `site/config.js`;
+5. запускает PostgreSQL, API и бота профилем `prod`;
+6. настраивает Nginx: сайт на порту 80, `/api/` проксируется в API.
+
+После завершения сайт доступен по `http://IP`, а бот продолжает работать в polling. Повторный `./deploy.sh IP` обновляет код, сохраняет серверный `.env` с паролем БД и Docker-том с данными.
+
+## Домен и HTTPS
+
+1. В DNS-панели регистратора создайте **A-запись** для выбранного домена, например `club.example.com`, с IP вашего VPS. Дождитесь применения DNS.
+2. Укажите домен в Nginx:
+
+```bash
+ssh root@203.0.113.10 "sed -i 's/server_name _;/server_name club.example.com;/' /etc/nginx/sites-available/neva-bot && nginx -t && systemctl reload nginx"
+```
+
+3. Установите Certbot и бесплатный сертификат Let's Encrypt:
+
+```bash
+ssh root@203.0.113.10 "apt-get update && apt-get install -y certbot python3-certbot-nginx && certbot --nginx --redirect -d club.example.com"
+```
+
+4. Переведите сайт на HTTPS-адрес API того же домена:
+
+```bash
+ssh root@203.0.113.10 "sed -i 's#http://203.0.113.10#https://club.example.com#' /opt/neva-bot/site/config.js"
+```
+
+Certbot настроит HTTPS и перенаправление с HTTP. Проверить автоматическое продление можно командой `certbot renew --dry-run` на сервере.
+
+## Полезные команды на сервере
+
+```bash
+cd /opt/neva-bot
+docker compose --profile prod ps
+docker compose --profile prod logs -f api
+docker compose --profile prod logs -f bot
+docker compose --profile prod logs -f db
+```
+
+Не удаляйте том `neva_postgres`: в нём хранятся группы и записи. Команда `docker compose --profile prod down` останавливает сервисы, но сама по себе том не удаляет; флаг `-v` использовать нельзя.

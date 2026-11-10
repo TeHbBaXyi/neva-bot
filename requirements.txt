@@ -1,4 +1,5 @@
 aiogram>=3.24
+alembic>=1.14
 fastapi>=0.115
 uvicorn[standard]>=0.32
 sqlalchemy[asyncio]>=2.0.36

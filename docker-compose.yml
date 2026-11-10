@@ -1,0 +1,44 @@
+# Общие настройки одного образа для API и Telegram-бота.
+x-app: &app
+  build: .
+  env_file: .env
+  environment:
+    BOT_TOKEN: ${BOT_TOKEN}
+    ADMIN_IDS: ${ADMIN_IDS:-}
+    DATABASE_URL: ${DATABASE_URL}
+  restart: unless-stopped
+
+services:
+  # Локальная база Никиты не используется в контейнерах: этот сервис нужен только прода.
+  db:
+    image: postgres:17-alpine
+    profiles: ["prod"]
+    environment:
+      POSTGRES_DB: neva_bot
+      POSTGRES_USER: neva
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    volumes:
+      - neva_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neva -d neva_bot"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    <<: *app
+    profiles: ["local", "prod"]
+    command: ["api"]
+    # Nginx на сервере и браузер на Windows обращаются к API через порт хоста.
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  bot:
+    <<: *app
+    profiles: ["local", "prod"]
+    command: ["bot"]
+    depends_on:
+      - api
+
+volumes:
+  neva_postgres:

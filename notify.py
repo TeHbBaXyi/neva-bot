@@ -4,6 +4,7 @@ from config import settings
 from models import Booking
 
 _bot: Bot | None = None
+_bot_username: str | None = None
 
 
 def get_bot() -> Bot:
@@ -11,6 +12,14 @@ def get_bot() -> Bot:
     if _bot is None:
         _bot = Bot(token=settings.BOT_TOKEN)
     return _bot
+
+
+async def booking_manage_url(token: str) -> str:
+    global _bot_username
+    if _bot_username is None:
+        me = await get_bot().get_me()
+        _bot_username = me.username
+    return f"https://t.me/{_bot_username}?start={token}"
 
 
 async def notify_new_booking(
